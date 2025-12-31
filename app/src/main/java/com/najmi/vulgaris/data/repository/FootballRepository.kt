@@ -1,0 +1,129 @@
+package com.najmi.vulgaris.data.repository
+
+import com.najmi.vulgaris.data.api.FootballApi
+import com.najmi.vulgaris.data.model.FixtureResult
+import com.najmi.vulgaris.data.model.Standing
+import com.najmi.vulgaris.data.model.TeamSearchResult
+import kotlinx.coroutines.flow.first
+import java.util.Calendar
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class FootballRepository @Inject constructor(
+    private val footballApi: FootballApi,
+    private val settingsRepository: SettingsRepository
+) {
+    // In-memory cache
+    private val teamCache = mutableMapOf<String, List<TeamSearchResult>>()
+    private val fixtureCache = mutableMapOf<String, List<FixtureResult>>()
+    private val standingsCache = mutableMapOf<String, List<Standing>>()
+    
+    private suspend fun getApiKey(): String {
+        return settingsRepository.footballApiKey.first()
+    }
+    
+    private fun getCurrentSeason(): Int {
+        val calendar = Calendar.getInstance()
+        val month = calendar.get(Calendar.MONTH)
+        val year = calendar.get(Calendar.YEAR)
+        // Football season typically starts in August
+        return if (month >= Calendar.AUGUST) year else year - 1
+    }
+    
+    suspend fun searchTeams(query: String): Result<List<TeamSearchResult>> {
+        return try {
+            // Check cache first
+            teamCache[query.lowercase()]?.let { return Result.success(it) }
+            
+            val apiKey = getApiKey()
+            if (apiKey.isBlank()) {
+                return Result.failure(Exception("Football API key not configured"))
+            }
+            
+            val response = footballApi.searchTeams(query, apiKey)
+            if (response.errors.isNotEmpty()) {
+                Result.failure(Exception(response.errors.joinToString()))
+            } else {
+                teamCache[query.lowercase()] = response.response
+                Result.success(response.response)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getUpcomingFixtures(teamId: Int, count: Int = 5): Result<List<FixtureResult>> {
+        return try {
+            val cacheKey = "upcoming_${teamId}_$count"
+            fixtureCache[cacheKey]?.let { return Result.success(it) }
+            
+            val apiKey = getApiKey()
+            if (apiKey.isBlank()) {
+                return Result.failure(Exception("Football API key not configured"))
+            }
+            
+            val response = footballApi.getUpcomingFixtures(teamId, count, apiKey)
+            if (response.errors.isNotEmpty()) {
+                Result.failure(Exception(response.errors.joinToString()))
+            } else {
+                fixtureCache[cacheKey] = response.response
+                Result.success(response.response)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getRecentFixtures(teamId: Int, count: Int = 5): Result<List<FixtureResult>> {
+        return try {
+            val cacheKey = "recent_${teamId}_$count"
+            fixtureCache[cacheKey]?.let { return Result.success(it) }
+            
+            val apiKey = getApiKey()
+            if (apiKey.isBlank()) {
+                return Result.failure(Exception("Football API key not configured"))
+            }
+            
+            val response = footballApi.getRecentFixtures(teamId, count, apiKey)
+            if (response.errors.isNotEmpty()) {
+                Result.failure(Exception(response.errors.joinToString()))
+            } else {
+                fixtureCache[cacheKey] = response.response
+                Result.success(response.response)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getStandings(leagueId: Int): Result<List<Standing>> {
+        return try {
+            val season = getCurrentSeason()
+            val cacheKey = "${leagueId}_$season"
+            standingsCache[cacheKey]?.let { return Result.success(it) }
+            
+            val apiKey = getApiKey()
+            if (apiKey.isBlank()) {
+                return Result.failure(Exception("Football API key not configured"))
+            }
+            
+            val response = footballApi.getStandings(leagueId, season, apiKey)
+            if (response.errors.isNotEmpty()) {
+                Result.failure(Exception(response.errors.joinToString()))
+            } else {
+                val standings = response.response.firstOrNull()?.league?.standings?.flatten() ?: emptyList()
+                standingsCache[cacheKey] = standings
+                Result.success(standings)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    fun clearCache() {
+        teamCache.clear()
+        fixtureCache.clear()
+        standingsCache.clear()
+    }
+}
