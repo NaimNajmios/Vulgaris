@@ -4,6 +4,8 @@ import com.najmi.vulgaris.data.model.FixtureResult
 import com.najmi.vulgaris.data.model.FootballApiResponse
 import com.najmi.vulgaris.data.model.StandingsResult
 import com.najmi.vulgaris.data.model.TeamSearchResult
+import com.najmi.vulgaris.data.model.TeamStatistics
+import com.najmi.vulgaris.data.model.TopScorer
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Query
@@ -62,7 +64,35 @@ interface FootballApi {
         @Query("current") current: Boolean = true,
         @Header("x-apisports-key") apiKey: String
     ): FootballApiResponse<LeagueResult>
+    
+    @GET("fixtures")
+    suspend fun getLiveMatches(
+        @Query("live") live: String = "all",
+        @Header("x-apisports-key") apiKey: String
+    ): FootballApiResponse<FixtureResult>
+    
+    @GET("teams/statistics")
+    suspend fun getTeamStatistics(
+        @Query("team") teamId: Int,
+        @Query("league") leagueId: Int,
+        @Query("season") season: Int,
+        @Header("x-apisports-key") apiKey: String
+    ): TeamStatisticsResponse
+    
+    @GET("players/topscorers")
+    suspend fun getTopScorers(
+        @Query("league") leagueId: Int,
+        @Query("season") season: Int,
+        @Header("x-apisports-key") apiKey: String
+    ): FootballApiResponse<TopScorer>
 }
+
+// Response wrapper for team statistics (different structure)
+@kotlinx.serialization.Serializable
+data class TeamStatisticsResponse(
+    val response: TeamStatistics,
+    val errors: List<String> = emptyList()
+)
 
 // Additional model for leagues endpoint
 @kotlinx.serialization.Serializable

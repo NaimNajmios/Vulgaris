@@ -169,3 +169,168 @@ data class StandingGoals(
     val goalsFor: Int,
     val against: Int
 )
+
+// Team Statistics models
+@Serializable
+data class TeamStatistics(
+    val league: LeagueInfo,
+    val team: Team,
+    val form: String? = null,
+    val fixtures: FixturesStats? = null,
+    val goals: GoalsStats? = null,
+    val biggest: BiggestStats? = null,
+    val cleanSheet: HomeAwayTotal? = null,
+    val failedToScore: HomeAwayTotal? = null,
+    val penalty: PenaltyStats? = null,
+    val lineups: List<LineupInfo>? = null
+)
+
+@Serializable
+data class FixturesStats(
+    val played: HomeAwayTotal? = null,
+    val wins: HomeAwayTotal? = null,
+    val draws: HomeAwayTotal? = null,
+    val loses: HomeAwayTotal? = null
+)
+
+@Serializable
+data class HomeAwayTotal(
+    val home: Int? = null,
+    val away: Int? = null,
+    val total: Int? = null
+)
+
+@Serializable
+data class GoalsStats(
+    @SerialName("for")
+    val goalsFor: GoalDetail? = null,
+    val against: GoalDetail? = null
+)
+
+@Serializable
+data class GoalDetail(
+    val total: HomeAwayTotal? = null,
+    val average: GoalAverage? = null
+)
+
+@Serializable
+data class GoalAverage(
+    val home: String? = null,
+    val away: String? = null,
+    val total: String? = null
+)
+
+@Serializable
+data class BiggestStats(
+    val streak: StreakStats? = null,
+    val wins: HomeAwayString? = null,
+    val loses: HomeAwayString? = null,
+    val goals: BiggestGoals? = null
+)
+
+@Serializable
+data class StreakStats(
+    val wins: Int? = null,
+    val draws: Int? = null,
+    val loses: Int? = null
+)
+
+@Serializable
+data class HomeAwayString(
+    val home: String? = null,
+    val away: String? = null
+)
+
+@Serializable
+data class BiggestGoals(
+    @SerialName("for")
+    val goalsFor: HomeAwayGoals? = null,
+    val against: HomeAwayGoals? = null
+)
+
+@Serializable
+data class HomeAwayGoals(
+    val home: Int? = null,
+    val away: Int? = null
+)
+
+@Serializable
+data class PenaltyStats(
+    val scored: PenaltyDetail? = null,
+    val missed: PenaltyDetail? = null,
+    val total: Int? = null
+)
+
+@Serializable
+data class PenaltyDetail(
+    val total: Int? = null,
+    val percentage: String? = null
+)
+
+@Serializable
+data class LineupInfo(
+    val formation: String,
+    val played: Int
+)
+
+// Top Scorers models
+@Serializable
+data class TopScorer(
+    val player: PlayerInfo,
+    val statistics: List<PlayerStatistics>
+)
+
+@Serializable
+data class PlayerInfo(
+    val id: Int,
+    val name: String,
+    val firstname: String? = null,
+    val lastname: String? = null,
+    val age: Int? = null,
+    val nationality: String? = null,
+    val height: String? = null,
+    val weight: String? = null,
+    val photo: String? = null
+)
+
+@Serializable
+data class PlayerStatistics(
+    val team: Team? = null,
+    val league: LeagueInfo? = null,
+    val games: PlayerGames? = null,
+    val goals: PlayerGoals? = null,
+    val passes: PlayerPasses? = null,
+    val cards: PlayerCards? = null
+)
+
+@Serializable
+data class PlayerGames(
+    val appearences: Int? = null,
+    val lineups: Int? = null,
+    val minutes: Int? = null,
+    val position: String? = null,
+    val rating: String? = null,
+    val captain: Boolean? = null
+)
+
+@Serializable
+data class PlayerGoals(
+    val total: Int? = null,
+    val conceded: Int? = null,
+    val assists: Int? = null,
+    val saves: Int? = null
+)
+
+@Serializable
+data class PlayerPasses(
+    val total: Int? = null,
+    val key: Int? = null,
+    val accuracy: Int? = null
+)
+
+@Serializable
+data class PlayerCards(
+    val yellow: Int? = null,
+    val yellowred: Int? = null,
+    val red: Int? = null
+)

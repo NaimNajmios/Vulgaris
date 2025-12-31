@@ -4,6 +4,8 @@ import com.najmi.vulgaris.data.api.FootballApi
 import com.najmi.vulgaris.data.model.FixtureResult
 import com.najmi.vulgaris.data.model.Standing
 import com.najmi.vulgaris.data.model.TeamSearchResult
+import com.najmi.vulgaris.data.model.TeamStatistics
+import com.najmi.vulgaris.data.model.TopScorer
 import kotlinx.coroutines.flow.first
 import java.util.Calendar
 import javax.inject.Inject
@@ -18,6 +20,8 @@ class FootballRepository @Inject constructor(
     private val teamCache = mutableMapOf<String, List<TeamSearchResult>>()
     private val fixtureCache = mutableMapOf<String, List<FixtureResult>>()
     private val standingsCache = mutableMapOf<String, List<Standing>>()
+    private val statsCache = mutableMapOf<String, TeamStatistics>()
+    private val scorersCache = mutableMapOf<String, List<TopScorer>>()
     
     private suspend fun getApiKey(): String {
         return settingsRepository.footballApiKey.first()
@@ -100,7 +104,7 @@ class FootballRepository @Inject constructor(
     suspend fun getStandings(leagueId: Int): Result<List<Standing>> {
         return try {
             val season = getCurrentSeason()
-            val cacheKey = "${leagueId}_$season"
+            val cacheKey = "standings_${leagueId}_$season"
             standingsCache[cacheKey]?.let { return Result.success(it) }
             
             val apiKey = getApiKey()
@@ -121,9 +125,76 @@ class FootballRepository @Inject constructor(
         }
     }
     
+    suspend fun getLiveMatches(): Result<List<FixtureResult>> {
+        return try {
+            val apiKey = getApiKey()
+            if (apiKey.isBlank()) {
+                return Result.failure(Exception("Football API key not configured"))
+            }
+            
+            // Don't cache live matches - always fresh
+            val response = footballApi.getLiveMatches("all", apiKey)
+            if (response.errors.isNotEmpty()) {
+                Result.failure(Exception(response.errors.joinToString()))
+            } else {
+                Result.success(response.response)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getTeamStatistics(teamId: Int, leagueId: Int): Result<TeamStatistics> {
+        return try {
+            val season = getCurrentSeason()
+            val cacheKey = "stats_${teamId}_${leagueId}_$season"
+            statsCache[cacheKey]?.let { return Result.success(it) }
+            
+            val apiKey = getApiKey()
+            if (apiKey.isBlank()) {
+                return Result.failure(Exception("Football API key not configured"))
+            }
+            
+            val response = footballApi.getTeamStatistics(teamId, leagueId, season, apiKey)
+            if (response.errors.isNotEmpty()) {
+                Result.failure(Exception(response.errors.joinToString()))
+            } else {
+                statsCache[cacheKey] = response.response
+                Result.success(response.response)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getTopScorers(leagueId: Int): Result<List<TopScorer>> {
+        return try {
+            val season = getCurrentSeason()
+            val cacheKey = "scorers_${leagueId}_$season"
+            scorersCache[cacheKey]?.let { return Result.success(it) }
+            
+            val apiKey = getApiKey()
+            if (apiKey.isBlank()) {
+                return Result.failure(Exception("Football API key not configured"))
+            }
+            
+            val response = footballApi.getTopScorers(leagueId, season, apiKey)
+            if (response.errors.isNotEmpty()) {
+                Result.failure(Exception(response.errors.joinToString()))
+            } else {
+                scorersCache[cacheKey] = response.response
+                Result.success(response.response)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
     fun clearCache() {
         teamCache.clear()
         fixtureCache.clear()
         standingsCache.clear()
+        statsCache.clear()
+        scorersCache.clear()
     }
 }
